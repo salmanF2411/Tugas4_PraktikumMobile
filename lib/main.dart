@@ -63,14 +63,18 @@ class _TampilanDaftarMakananState extends State<TampilanDaftarMakanan> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Menu Makanan di Restoran Salman"),
-        backgroundColor: Colors.amber,
+        backgroundColor: const Color.fromARGB(255, 7, 255, 44),
       ),
       body: Center(
         child: Column(
           children: [
             Text(
               "List Menu Makanan",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.green,
+              ),
             ),
             //Disini Kita Akan Tampilkan Menu Makanannya yang datanya didapat dari API
             Expanded(
@@ -113,7 +117,7 @@ class _TampilanDaftarMakananState extends State<TampilanDaftarMakanan> {
       // Tombol kembali ke atas
       floatingActionButton: _showBackToTopButton
           ? FloatingActionButton(
-              backgroundColor: Colors.amber,
+              backgroundColor: const Color.fromARGB(255, 26, 168, 13),
               onPressed: () {
                 _scrollController.animateTo(
                   0,
