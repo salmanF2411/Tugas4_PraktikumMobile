@@ -1,112 +1,131 @@
 import 'package:flutter/material.dart';
-import 'package:pertemuan4/API/makananApi.dart';
-import 'package:pertemuan4/Model/makanan_model.dart';
+import 'package:pertemuan4/API/api_service.dart';
+import 'package:pertemuan4/Model/article_model.dart';
 
 void main() {
-  runApp(DaftarMakanan());
+  runApp(const DaftarBerita());
 }
 
-//tampilan dasarannya dulu
-//MaterialApp & Scaffold
-
-class DaftarMakanan extends StatelessWidget {
-  const DaftarMakanan({super.key});
+class DaftarBerita extends StatelessWidget {
+  const DaftarBerita({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: TampilanDaftarMakanan(), //untuk memanggil scaffold
+      home: const TampilanDaftarBerita(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class TampilanDaftarMakanan extends StatefulWidget {
-  const TampilanDaftarMakanan({super.key});
+class TampilanDaftarBerita extends StatefulWidget {
+  const TampilanDaftarBerita({super.key});
 
   @override
-  State<TampilanDaftarMakanan> createState() => _TampilanDaftarMakananState();
+  State<TampilanDaftarBerita> createState() => _TampilanDaftarBeritaState();
 }
 
-class _TampilanDaftarMakananState extends State<TampilanDaftarMakanan> {
-  late Future<List<Makanan>> _makanan;
+class _TampilanDaftarBeritaState extends State<TampilanDaftarBerita> {
+  late Future<List<Article>> _articles;
+  final ScrollController _scrollcontrol = ScrollController();
+  bool _ScrollTopButton = false;
 
-  // Tambahan:
-  final ScrollController _scrollController = ScrollController();
-  bool _showBackToTopButton = false;
-
-  //untuk menjalankan fungsi mengambil datanya
   @override
   void initState() {
     super.initState();
-    _makanan = ApiService().fetchMakanan();
+    _articles = ApiService().fetchArticles();
 
-    //fungsi Kembali ke atas
-    _scrollController.addListener(() {
-      if (_scrollController.offset >= 100) {
-        setState(() => _showBackToTopButton = true);
-      } else {
-        setState(() => _showBackToTopButton = false);
-      }
+    _scrollcontrol.addListener(() {
+      setState(() {
+        _ScrollTopButton = _scrollcontrol.position.pixels > 150;
+      });
     });
   }
 
-  // Fungsi refresh data
+  @override
+  void dispose() {
+    _scrollcontrol.dispose();
+    super.dispose();
+  }
+
   Future<void> _refreshData() async {
     setState(() {
-      _makanan = ApiService().fetchMakanan();
+      _articles = ApiService().fetchArticles();
     });
+  }
+
+  void _scrollToTop() {
+    _scrollcontrol.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Menu Makanan di Restoran Salman"),
-        backgroundColor: const Color.fromARGB(255, 7, 255, 44),
+        title: const Text("Salman Berita Terkini"),
+        backgroundColor: Colors.green,
       ),
+
       body: Center(
         child: Column(
           children: [
-            Text(
-              "List Menu Makanan",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Colors.green,
-              ),
+            const SizedBox(height: 6),
+            const Text(
+              "LIST BERITA TERBARU",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            //Disini Kita Akan Tampilkan Menu Makanannya yang datanya didapat dari API
             Expanded(
-              child: FutureBuilder(
-                future: _makanan,
+              child: FutureBuilder<List<Article>>(
+                future: _articles,
                 builder: (context, snapshot) {
-                  //datanya ada
-                  if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                    final makanans = snapshot.data!;
-                    // Tambahkan RefreshIndicator di sini
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    return Text("Error: ${snapshot.error}");
+                  } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                    final newsList = snapshot.data!;
                     return RefreshIndicator(
                       onRefresh: _refreshData,
                       child: ListView.builder(
-                        controller: _scrollController, // Tambahan controller
-                        itemCount: makanans.length,
+                        controller: _scrollcontrol,
+                        itemCount: newsList.length,
                         itemBuilder: (context, index) {
-                          final makanan = makanans[index]; //index
+                          final artikel = newsList[index];
                           return Card(
                             elevation: 2,
+                            margin: const EdgeInsets.symmetric(
+                              vertical: 6,
+                              horizontal: 10,
+                            ),
                             child: ListTile(
-                              leading: Image(image: NetworkImage(makanan.img!)),
-                              title: Text(makanan.nama!),
-                              subtitle: Text(makanan.rangking!),
+                              leading: (artikel.urlToImage != null)
+                                  ? Image.network(
+                                      artikel.urlToImage!,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : const Icon(Icons.image_not_supported),
+                              title: Text(
+                                artikel.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                artikel.description ?? "Deskripsi Tidak Ada.",
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           );
                         },
                       ),
                     );
-                  }
-                  //datanya erro
-                  else {
-                    return Text("Data Eror");
+                  } else {
+                    return const Text("Berita Tidak Ada.");
                   }
                 },
               ),
@@ -114,18 +133,12 @@ class _TampilanDaftarMakananState extends State<TampilanDaftarMakanan> {
           ],
         ),
       ),
-      // Tombol kembali ke atas
-      floatingActionButton: _showBackToTopButton
+
+      floatingActionButton: _ScrollTopButton
           ? FloatingActionButton(
-              backgroundColor: const Color.fromARGB(255, 26, 168, 13),
-              onPressed: () {
-                _scrollController.animateTo(
-                  0,
-                  duration: Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                );
-              },
-              child: Icon(Icons.arrow_upward),
+              onPressed: _scrollToTop,
+              backgroundColor: Colors.green,
+              child: const Icon(Icons.arrow_upward_outlined),
             )
           : null,
     );
